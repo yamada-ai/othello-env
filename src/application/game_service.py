@@ -1,6 +1,7 @@
 import pprint
 from src.domain.game import OthelloGame
 from src.domain.position import Position
+from src.domain.player import Player
 
 
 def process_move(data: dict) -> dict:
@@ -13,13 +14,24 @@ def process_move(data: dict) -> dict:
 
     game = OthelloGame.from_state(board_state, current_turn)
     pos = Position(row, col)
-    if game.make_move(pos):
-        return {
-            'status': 'move accepted',
-            'board': serialize_board(game.board),
-            'current_turn': game.current_turn.value,
-        }
-    return {'status': 'invalid move'}
+    move_result = game.make_move(pos)
+    response = {
+        'status': 'move accepted' if move_result else 'invalid move',
+        'board': serialize_board(game.board),
+        'current_turn': game.current_turn.value,
+    }
+    # ゲーム終了の場合は、勝者と報酬情報を付与する
+    if game.is_game_over():
+        winner = game.get_winner()
+        response['game_over'] = True
+        response['winner'] = winner.value if winner else 'draw'
+        # 各プレイヤーの報酬（シンプルに、勝ち:+1, 負け:-1, 引き分け:0）
+        response['reward_BLACK'] = game.calculate_reward(Player.BLACK)
+        response['reward_WHITE'] = game.calculate_reward(Player.WHITE)
+    else:
+        response['game_over'] = False
+
+    return response
 
 
 def process_move_debug(data: dict) -> dict:
@@ -34,12 +46,23 @@ def process_move_debug(data: dict) -> dict:
     game = OthelloGame.from_state(board_state, current_turn)
     pos = Position(row, col)
     move_result = game.make_move(pos)
-    pprint.pprint(_debug_board_str(game.board))
-    return {
+    board_str = _debug_board_str(game.board)
+    pprint.pprint(board_str)
+    response = {
         'status': 'move accepted' if move_result else 'invalid move',
         'board': serialize_board(game.board),
         'current_turn': game.current_turn.value,
+        'debug_board': board_str,
     }
+    if game.is_game_over():
+        winner = game.get_winner()
+        response['game_over'] = True
+        response['winner'] = winner.value if winner else 'draw'
+        response['reward_BLACK'] = game.calculate_reward(Player.BLACK)
+        response['reward_WHITE'] = game.calculate_reward(Player.WHITE)
+    else:
+        response['game_over'] = False
+    return response
 
 
 def get_initial_state() -> dict:

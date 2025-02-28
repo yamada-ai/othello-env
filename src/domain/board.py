@@ -80,3 +80,38 @@ class Board:
             r += dr
             c += dc
         return None
+
+    # ヘルパー: 全セルを反復するジェネレータ
+    def iter_cells(self):
+        for row in self.cells:
+            for cell in row:
+                yield cell
+
+    # 追加: 指定プレイヤーの合法手のリストを返す
+    def get_valid_moves(self, current_turn: Player) -> List[Position]:
+        moves = []
+        for row in range(self.size):
+            for col in range(self.size):
+                pos = Position(row, col)
+                if self.is_valid_move(pos, current_turn):
+                    moves.append(pos)
+        return moves
+
+    # 追加: 指定プレイヤーに合法手が存在するか
+    def has_valid_move(self, current_turn: Player) -> bool:
+        return len(self.get_valid_moves(current_turn)) > 0
+
+    # 追加: 盤面が全て埋まっているか判定
+    def is_full(self) -> bool:
+        return all(not cell.is_empty() for cell in self.iter_cells())
+
+    # 追加: 黒と白の石の数をカウントして返す (黒, 白)
+    def count_discs(self) -> Tuple[int, int]:
+        black = 0
+        white = 0
+        for cell in self.iter_cells():
+            if cell.occupant == Player.BLACK:
+                black += 1
+            elif cell.occupant == Player.WHITE:
+                white += 1
+        return black, white
